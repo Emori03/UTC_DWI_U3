@@ -1,0 +1,52 @@
+.producto {
+    transition: transform 0.2s;
+}
+
+.producto:hover {
+    transform: scale(1.05);
+}
+
+.comprar-btn {
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.comprar-btn:hover {
+    background-color: #0056b3;
+    transform: scale(1.1);
+}
+
+.producto {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.img-container {
+    width: 100%;
+    height: 200px; /* Altura fija para las imágenes */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.img-container img {
+    width: auto;
+    height: 100%;
+}
+
+.card-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.card-title, .card-text {
+    text-align: center;
+}
+
+
+
+
