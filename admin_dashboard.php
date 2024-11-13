@@ -13,16 +13,89 @@ if (!isAuthenticated() || !isValidSession()) {
 date_default_timezone_set('America/Monterrey');
 $lastLogin = isset($_SESSION['last_login']) ? date('d-m-Y H:i:s', $_SESSION['last_login']) : 'Nunca';
 
-$query = "
-    SELECT u.id AS user_id, u.nombre AS user_name, p.nombre AS product_name
-    FROM usuarios u
-    LEFT JOIN carrito c ON u.id = c.usuario_id
-    LEFT JOIN productos p ON c.producto_id = p.id
-    ORDER BY u.id, p.nombre
-";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Función para establecer mensajes de sesión
+function setFlashMessage($type, $message) {
+    $_SESSION['flash_message'] = [
+        'type' => $type,
+        'message' => $message
+    ];
+}
+
+// Función para obtener y eliminar mensajes de sesión
+function getFlashMessage() {
+    if (isset($_SESSION['flash_message'])) {
+        $flash_message = $_SESSION['flash_message'];
+        unset($_SESSION['flash_message']);
+        return $flash_message;
+    }
+    return null;
+}
+
+// Agregar producto
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'agregar') {
+    if (isset($_POST['nombre']) && isset($_POST['precio']) && isset($_FILES['imagen']) && $_FILES['imagen']['error'] == UPLOAD_ERR_OK) {
+        $nombre = $_POST['nombre'];
+        $precio = $_POST['precio'];
+        $imagen = $_FILES['imagen'];
+
+        // Verificar si el archivo es una imagen
+        $imagen_tipo = mime_content_type($imagen['tmp_name']);
+        if (strpos($imagen_tipo, 'image/') === false) {
+            setFlashMessage('danger', 'El archivo seleccionado no es una imagen.');
+        } else {
+            // Leer la imagen en binario
+            $imagen_datos = file_get_contents($imagen['tmp_name']);
+
+            try {
+                $sql = "INSERT INTO productos (nombre, precio, imagen) VALUES (:nombre, :precio, :imagen)";
+                $stmt = $cnnPDO->prepare($sql);
+                $stmt->bindParam(':nombre', $nombre);
+                $stmt->bindParam(':precio', $precio);
+                $stmt->bindParam(':imagen', $imagen_datos, PDO::PARAM_LOB);
+                $stmt->execute();
+
+                setFlashMessage('success', '¡Producto agregado exitosamente!');
+            } catch (PDOException $e) {
+                setFlashMessage('danger', 'Error: ' . $e->getMessage());
+            }
+        }
+    } else {
+        setFlashMessage('danger', 'Por favor, complete todos los campos y asegúrese de que el archivo se haya cargado correctamente.');
+    }
+
+    // Redirigir para evitar reenvío del formulario
+    header('Location: admin_dashboard.php');
+    exit;
+}
+
+// Eliminar producto
+if (isset($_GET['eliminar'])) {
+    $id = intval($_GET['eliminar']);
+
+    try {
+        $sql = "DELETE FROM productos WHERE id = :id";
+        $stmt = $cnnPDO->prepare($sql);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+
+        setFlashMessage('success', '¡Producto eliminado exitosamente!');
+    } catch (PDOException $e) {
+        setFlashMessage('danger', 'Error: ' . $e->getMessage());
+    }
+
+    // Redirigir para evitar reenvío del formulario
+    header('Location: admin_dashboard.php');
+    exit;
+}
+
+// Mostrar productos
+try {
+    $sql = "SELECT * FROM productos";
+    $stmt = $cnnPDO->query($sql);
+    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "<div class='alert alert-danger' role='alert'>Error: " . $e->getMessage() . "</div>";
+}
 ?>
 
 <!DOCTYPE html>
@@ -56,22 +129,43 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="css/styles.css"> <!-- Asegúrate de que este archivo exista y contenga los estilos adicionales -->
     <style>
-        /* Agrega aquí tus estilos adicionales */
-        .carousel-item img {
-            width: 100%;
-            height: auto;
+        .alert {
+            transition: opacity 0.5s ease-out;
         }
-        .body-container {
+        .form-container {
+            display: none; /* Ocultar el formulario por defecto */
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #f9f9f9;
             margin-top: 20px;
+        }
+
+        body
+        {
+            background-image: url(img/fondo.jpg);
+            background-position: center;
+            background-repeat: no-repeat; 
+            background-size: cover;
+            background-attachment: 15px;
+        }
+        body
+        {
+            min-height: 100vh;
+            background: linear-gradient( rgba(5,7,12,0.75), rgba(5,7,12,0.20)),
+            url(img/fondo.jpg) no-repeat center fixed;
+            background-size: cover;
+            backdrop-filter: blur(3px);   
         }
     </style>
 </head>
 <body>
 
+<p style="color: #ffffff">Último inicio de sesión: <span id="last-login"><?php echo $lastLogin; ?></span></p>
 
 
 <div class="container">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="collapse navbar-collapse justify-content-center" id="navbarSupportedContent">
             <ul class="navbar-nav">
             <a class="navbar-brand" href="#">Bienvenido: <?php echo htmlspecialchars($_SESSION['nombre']); ?></a>
@@ -88,43 +182,93 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </ul>
         </div>
     </nav>
-    <div class="collapse navbar-collapse justify-content-left">
-    <p>Último inicio de sesión: <span id="last-login"><?php echo $lastLogin; ?></span></p></div>
+    
 </div>
 
-<table class="table table-bordered mt-4">
-            <thead>
-                <tr>
-                    <th>Nombre de Usuario</th>
-                    <th>Productos en el Carrito</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $currentUser = '';
-                foreach ($rows as $row) {
-                    if ($currentUser !== $row['user_name']) {
-                        if ($currentUser !== '') {
-                            echo '</ul></td></tr>';
-                        }
-                        echo '<tr><td>' . htmlspecialchars($row['user_name']) . '</td><td><ul>';
-                        $currentUser = $row['user_name'];
-                    }
-                    if ($row['product_name']) {
-                        echo '<li>' . htmlspecialchars($row['product_name']) . '</li>';
-                    }
-                }
-                if ($currentUser !== '') {
-                    echo '</ul></td></tr>';
-                }
-                ?>
-            </tbody>
-        </table>
+
+<div class="container mt-5">
+        <!-- Botón para mostrar el formulario -->
+        <button id="toggleFormBtn"  class="btn btn-outline-light">Agregar Producto</button>
+        
+        <!-- Contenedor del formulario -->
+        <div id="formContainer" class="form-container">
+            <h2>Agregar Producto</h2>
+            <form action="" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="agregar">
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" class="form-control" id="nombre" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="precio">Precio:</label>
+                    <input type="number" step="0.01" class="form-control" id="precio" name="precio" required>
+                </div>
+                <div class="form-group">
+                    <label for="imagen">Imagen:</label>
+                    <input type="file" class="form-control-file" id="imagen" name="imagen" accept="image/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Agregar Producto</button>
+            </form>
+        </div>
+
+        <!-- Mostrar alertas -->
+        <?php
+        $flash_message = getFlashMessage();
+        if ($flash_message):
+        ?>
+            <div class="alert alert-<?= htmlspecialchars($flash_message['type']) ?>" role="alert">
+                <?= htmlspecialchars($flash_message['message']) ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Mostrar productos -->
+         <center>
+         <h2 class="mt-5" style="color: #ffffff;">Productos</h2>
+        </center>
+        <br><br>
+        <div class="row">
+            <?php foreach ($productos as $producto): ?>
+                <div class="col-md-4 mb-4">
+                    <div class="producto">
+                        <div class="img-container">
+                            <?php if ($producto['imagen']): ?>
+                                <img src="data:image/jpeg;base64,<?= base64_encode($producto['imagen']) ?>" alt="<?= htmlspecialchars($producto['nombre']) ?>">
+                            <?php else: ?>
+                                <img src="images/placeholder.png" alt="Imagen no disponible">
+                            <?php endif; ?>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title" style="color: #ffffff;"><?= htmlspecialchars($producto['nombre']) ?></h5>
+                            <p class="card-text"style="color: #ffffff;" >$<?= number_format($producto['precio'], 2) ?></p>
+                            <a href="?eliminar=<?= $producto['id'] ?>" class="btn btn-danger">Eliminar</a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
-</div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mostrar u ocultar el formulario al presionar el botón
+            document.getElementById('toggleFormBtn').addEventListener('click', function() {
+                var formContainer = document.getElementById('formContainer');
+                if (formContainer.style.display === 'none' || formContainer.style.display === '') {
+                    formContainer.style.display = 'block';
+                } else {
+                    formContainer.style.display = 'none';
+                }
+            });
 
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+            // Ocultar alertas automáticamente después de 3 segundos
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500); // Elimina el elemento después de que la animación se completa
+                }, 3000); // 3000 ms = 3 segundos
+            });
+        });
+    </script>
 </body>
 </html>

@@ -26,7 +26,7 @@ function isValidSession() {
 
 function protectRoute($role) {
     if (!isAuthenticated() || !hasRole($role) || !isValidSession()) {
-        header("Location: login.php");
+        header("Location: index.php");
         exit();
     }
 }

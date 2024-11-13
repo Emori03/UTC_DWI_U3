@@ -25,6 +25,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['session_key'])) {
 }
 
 // Redirigir al usuario a la página de inicio de sesión
-header("Location: login.php");
+header("Location: index.php");
 exit();
 ?>

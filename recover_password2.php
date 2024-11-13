@@ -2,22 +2,22 @@
 session_start();
 require 'conexion.php';
 
-if (isset($_POST['submit_email'])) {
-    $email = $_POST['email'];
+if (isset($_POST['submit_answer'])) {
+    $email = $_SESSION['email'];
+    $secret_answer = $_POST['secret_answer'];
 
     // Buscar el usuario por correo electrónico
-    $query = $cnnPDO->prepare('SELECT secret_question FROM usuarios WHERE email = :email');
+    $query = $cnnPDO->prepare('SELECT secret_answer FROM usuarios WHERE email = :email');
     $query->bindParam(':email', $email);
     $query->execute();
     $user = $query->fetch(PDO::FETCH_ASSOC);
 
-    if ($user) {
-        $_SESSION['email'] = $email; // Guardar el correo electrónico en la sesión
-        $_SESSION['secret_question'] = $user['secret_question']; // Guardar la pregunta secreta en la sesión
-        header('Location: recover_password2.php');
+    if ($user && password_verify($secret_answer, $user['secret_answer'])) {
+        $_SESSION['reset_email'] = $email; // Guardar el correo electrónico en la sesión
+        header('Location: reset_password.php');
         exit;
     } else {
-        $error = "Correo electrónico no encontrado.";
+        $error = "Respuesta secreta incorrecta.";
     }
 }
 ?>
@@ -56,7 +56,7 @@ if (isset($_POST['submit_email'])) {
   }
   .form-group { margin-bottom: 20px; }
   label { display: block; margin-bottom: 8px; color: #666; }
-  input[type="text"], input[type="email"] { width: calc(100% - 20px); padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
+  input[type="text"] { width: calc(100% - 20px); padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
   input[type="submit"] { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
   input[type="submit"]:hover { background-color: #45a049; }
 </style>
@@ -69,10 +69,10 @@ if (isset($_POST['submit_email'])) {
   <?php if (isset($error)) { echo "<p style='color: red;'>$error</p>"; } ?>
   <form action="" method="post">
     <div class="form-group">
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" class="form-control" required>
+      <label for="secret_answer"><?php echo htmlspecialchars($_SESSION['secret_question']); ?>:</label>
+      <input type="text" id="secret_answer" name="secret_answer" class="form-control" required>
     </div>
-    <button type="submit" name="submit_email" class="btn btn-dark btn-outline-light">Enviar</button>
+    <button type="submit" name="submit_answer" class="btn btn-dark btn-outline-light">Enviar</button>
   </form>
 </div>
 
