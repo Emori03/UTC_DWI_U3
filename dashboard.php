@@ -139,6 +139,7 @@ try {
         <div class="mt-3">
             <h4>Total: $<span id="total">0</span></h4>
         </div>
+        <div id="paypal-button-container"></div>
     </div>
 </div>
 
@@ -190,6 +191,7 @@ function eliminarDelCarrito(productId, productPrice) {
 // Agregar evento de clic a cada botón de compra
 document.querySelectorAll('.comprar-btn').forEach(button => {
     button.addEventListener('click', () => {
+        console.log("Entra")
         const productId = button.getAttribute('data-product-id');
         const productName = button.getAttribute('data-product-name');
         const productPrice = button.getAttribute('data-product-price');
@@ -199,5 +201,30 @@ document.querySelectorAll('.comprar-btn').forEach(button => {
 });
 </script>
 
+<script src="https://sandbox.paypal.com/sdk/js?client-id=AYmnFd666qg16TyMvBQdPIBFZ0U6vQ6fvZ6psaqhWVvn0DOt4fNQS6eoFKtmU0lcFt4J5skWy4CMe0i7"></script>
+<script>
+    paypal.Buttons({
+        style: {
+            layout: 'vertical',
+            color:  'gold',
+            shape:  'rect',
+            label:  'paypal'
+        },
+        createOrder: function(data, actions) {
+            return actions.order.create({
+            purchase_units: [{
+                amount: {
+                value: '0.01' // Monto ficticio para pruebas
+                }
+            }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+            alert('Transaction completed by ' + details.payer.name.given_name);
+            });
+        }
+    }).render('#paypal-button-container');
+</script>
 </body>
 </html>
