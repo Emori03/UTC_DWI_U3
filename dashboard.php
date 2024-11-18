@@ -44,7 +44,8 @@ try {
         <div class="collapse navbar-collapse justify-content-center" id="navbarSupportedContent">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="#">Bienvenid@: <?php echo $_SESSION['nombre']; ?></a>
+                    <a class="nav-link active" aria-current="page" href="#">Bienvenid@: <?php echo htmlspecialchars($_SESSION['nombre'], ENT_QUOTES, 'UTF-8'); ?></a>
+
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#productos">PRODUCTOS</a>
