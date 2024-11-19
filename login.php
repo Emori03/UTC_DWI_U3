@@ -1,63 +1,44 @@
 <?php
-ini_set('session.gc_maxlifetime', 3600);
-ini_set('session.cookie_secure', 1); // Solo cookies seguras
-ini_set('session.cookie_httponly', 1); // Impide acceso a las cookies desde JavaScript
-
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-
+session_start();
 require 'conexion.php';
 
-// Límite de intentos de inicio de sesión
-if (!isset($_SESSION['login_attempts'])) {
-    $_SESSION['login_attempts'] = 0;
-}
-
-if ($_SESSION['login_attempts'] >= 5) {
-    die("Demasiados intentos fallidos. Intente más tarde.");
-}
-
 if (isset($_POST['entrar'])) {
-    // Validar entradas
-    $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
+    $email = $_POST['email'];
     $contrasena = $_POST['contrasena'];
 
-    if ($email && $contrasena) {
-        try {
-            // Buscar usuario
-            $query = $cnnPDO->prepare('SELECT id, nombre, email, contrasena, role FROM usuarios WHERE email = :email');
-            $query->bindParam(':email', $email);
-            $query->execute();
-            $user = $query->fetch(PDO::FETCH_ASSOC);
+    try {
+        $query = $cnnPDO->prepare('SELECT * FROM usuarios WHERE email = :email');
+        $query->bindParam(':email', $email);
+        $query->execute();
+        $user = $query->fetch(PDO::FETCH_ASSOC);
 
-            if ($user && password_verify($contrasena, $user['contrasena'])) {
-                // Regenerar ID de sesión
-                session_regenerate_id(true);
+        if ($user && password_verify($contrasena, $user['contrasena'])) {
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['nombre'] = $user['nombre'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['role'] = $user['role'];
+            $_SESSION['session_key'] = md5(uniqid(mt_rand(), true)); 
 
-                // Almacenar datos en sesión
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['nombre'] = htmlspecialchars($user['nombre'], ENT_QUOTES, 'UTF-8');
-                $_SESSION['role'] = $user['role'];
+            $updateQuery = $cnnPDO->prepare('UPDATE usuarios SET session_key = :session_key WHERE id = :id');
+            $updateQuery->bindParam(':session_key', $_SESSION['session_key']);
+            $updateQuery->bindParam(':id', $user['id']);
+            $updateQuery->execute();
 
-                // Redirigir según el rol
-                header('Location: dashboard.php');
-                exit;
+            if ($user['role'] === 'admin') {
+                header('Location: admin_dashboard.php');
             } else {
-                $_SESSION['login_attempts']++;
-                $error = "Credenciales incorrectas.";
+                header('Location: dashboard.php');
             }
-        } catch (PDOException $e) {
-            error_log("Error: " . $e->getMessage());
-            $error = "Error interno. Por favor, intente de nuevo.";
+            exit;
+        } else {
+            $error = "Credenciales incorrectas.";
         }
-    } else {
-        $error = "Por favor, ingrese email y contraseña.";
+    } catch (PDOException $e) {
+        $error = "Error de base de datos: " . $e->getMessage();
     }
 }
 ?>
 
-<!-- Formulario HTML para inicio de sesión -->
 <!DOCTYPE html>
 <html lang="es">
 <head>

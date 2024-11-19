@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     if (isset($_POST['nombre']) && isset($_POST['precio']) && isset($_FILES['imagen']) && $_FILES['imagen']['error'] == UPLOAD_ERR_OK) {
         $nombre = $_POST['nombre'];
         $precio = $_POST['precio'];
+        $categoria = $_POST['categoria'];
         $imagen = $_FILES['imagen'];
 
         // Verificar si el archivo es una imagen
@@ -47,10 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
             $imagen_datos = file_get_contents($imagen['tmp_name']);
 
             try {
-                $sql = "INSERT INTO productos (nombre, precio, imagen) VALUES (:nombre, :precio, :imagen)";
+                $sql = "INSERT INTO productos (nombre, precio, categoria, imagen) VALUES (:nombre, :precio, :categoria, :imagen)";
                 $stmt = $cnnPDO->prepare($sql);
                 $stmt->bindParam(':nombre', $nombre);
                 $stmt->bindParam(':precio', $precio);
+                $stmt->bindParam(':categoria', $categoria);
                 $stmt->bindParam(':imagen', $imagen_datos, PDO::PARAM_LOB);
                 $stmt->execute();
 
@@ -174,9 +176,6 @@ try {
                     <a class="nav-link" href="#productos">PRODUCTOS</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#carrito">CARRITO DE COMPRAS</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" href="logout.php">SALIR</a>
                 </li>
             </ul>
@@ -204,6 +203,10 @@ try {
                     <input type="number" step="0.01" class="form-control" id="precio" name="precio" required>
                 </div>
                 <div class="form-group">
+                    <label for="categoria">Categoría</label>
+                    <input type="text" name="categoria" id="categoria" class="form-control" required>
+                </div>
+                <div class="form-group">
                     <label for="imagen">Imagen:</label>
                     <input type="file" class="form-control-file" id="imagen" name="imagen" accept="image/*" required>
                 </div>
@@ -222,6 +225,7 @@ try {
         <?php endif; ?>
 
         <!-- Mostrar productos -->
+        <div id="productos">
          <center>
          <h2 class="mt-5" style="color: #ffffff;">Productos</h2>
         </center>

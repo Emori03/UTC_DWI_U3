@@ -1,68 +1,30 @@
 <?php
-
-session_start();
 require_once 'conexion.php';
+session_start();
 
+if (isset($_POST['guardar'])) {  
+    $nombre = $_POST['nombre'];
+    $email = $_POST['email'];
+    $contrasena = password_hash($_POST['contrasena'], PASSWORD_BCRYPT);  // Encriptar la contraseña
+    $role = 'user';  // Asignar el rol de usuario por defecto
+    $secret_question = $_POST['secret_question'];
+    $secret_answer = password_hash($_POST['secret_answer'], PASSWORD_DEFAULT);
 
-// Generar un token CSRF si no existe
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-if (isset($_POST['guardar'])) {
-    // Verificar el token CSRF
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        die('Solicitud no válida (CSRF detectado).');
-    }
-
-    // Limpia el token después de usarlo (opcional para mayor seguridad)
-    unset($_SESSION['csrf_token']);
-
-    // Validar y sanitizar entradas
-    $nombre = filter_var($_POST['nombre'], FILTER_SANITIZE_STRING);
-    $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
-    $contrasena = $_POST['contrasena'];
-    $secret_question = htmlspecialchars($_POST['secret_question'], ENT_QUOTES, 'UTF-8');
-    $secret_answer = htmlspecialchars($_POST['secret_answer'], ENT_QUOTES, 'UTF-8');
-
-    if (!$email || strlen($contrasena) < 6) {
-        echo "Correo inválido o contraseña demasiado corta.";
-        exit;
-    }
-
-    // Verificar si el email ya está registrado
-    $sql = $cnnPDO->prepare("SELECT email FROM usuarios WHERE email = :email");
-    $sql->bindParam(':email', $email);
-    $sql->execute();
-
-    if ($sql->rowCount() > 0) {
-        echo "El correo ya está registrado.";
-        exit;
-    }
-
-    // Encriptar contraseña y respuesta secreta
-    $hashed_password = password_hash($contrasena, PASSWORD_BCRYPT);
-    $hashed_answer = password_hash($secret_answer, PASSWORD_DEFAULT);
-
-    // Insertar usuario
-    $sql = $cnnPDO->prepare("INSERT INTO usuarios (nombre, email, contrasena, role, secret_question, secret_answer) 
-                            VALUES (:nombre, :email, :contrasena, 'user', :secret_question, :secret_answer)");
-
+    $sql = $cnnPDO->prepare("INSERT INTO usuarios (nombre, email, contrasena, role, secret_question, secret_answer) VALUES (:nombre, :email, :contrasena, :role, :secret_question, :secret_answer)");
+    
     $sql->bindParam(':nombre', $nombre);
     $sql->bindParam(':email', $email);
-    $sql->bindParam(':contrasena', $hashed_password);
+    $sql->bindParam(':contrasena', $contrasena);
+    $sql->bindParam(':role', $role);
     $sql->bindParam(':secret_question', $secret_question);
-    $sql->bindParam(':secret_answer', $hashed_answer);
+    $sql->bindParam(':secret_answer', $secret_answer);
 
-    if ($sql->execute()) {
-        header("location:login.php");
-        exit;
-    } else {
-        echo "Error al registrar el usuario.";
-    }
+    $sql->execute();
+    
+    header("location:login.php");
+    exit;
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="es">
@@ -154,8 +116,6 @@ if (isset($_POST['guardar'])) {
     <center>
       <button type="submit" name="guardar" class="btn btn-dark btn-outline-light col-4">Registrar</button>
       <a href="index.php" class="btn btn-dark btn-outline-light col-4">Regresar</a>
-      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
-
     </center>
   </form>
 </div>
