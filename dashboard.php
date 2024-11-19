@@ -15,6 +15,25 @@ try {
 } catch (PDOException $e) {
     echo "<div class='alert alert-danger' role='alert'>Error: " . $e->getMessage() . "</div>";
 }
+
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_to_cart'])) {
+    $productId = $_POST['product_id'];
+    $productName = $_POST['product_name'];
+    $productPrice = $_POST['product_price'];
+    $productImage = $_POST['product_image'];
+
+    // Guardar el producto en la sesión
+    $product = [
+        'id' => $productId,
+        'name' => $productName,
+        'price' => $productPrice,
+        'image' => $productImage
+    ];
+
+    // Si el carrito ya existe en la sesión, agregar el nuevo producto
+    $_SESSION['cart'][] = $product;
+}
 ?>
 
 <!DOCTYPE html>
@@ -28,15 +47,6 @@ try {
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-3PQ2Q5QXCF"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-3PQ2Q5QXCF');
-</script>
 <body>
 
 <div class="container">
@@ -44,14 +54,13 @@ try {
         <div class="collapse navbar-collapse justify-content-center" id="navbarSupportedContent">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="#">Bienvenid@: <?php echo htmlspecialchars($_SESSION['nombre'], ENT_QUOTES, 'UTF-8'); ?></a>
-
+                    <a class="nav-link active" aria-current="page" href="#">Bienvenid@: <?php echo $_SESSION['nombre']; ?></a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#productos">PRODUCTOS</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#carrito">CARRITO DE COMPRAS</a>
+                    <a class="nav-link" href="carrito.php">CARRITO DE COMPRAS</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="logout.php">SALIR</a>
@@ -63,178 +72,145 @@ try {
 
 <!-- Carousel -->
 <div class="Body-container">
-    <div class="carousel">
-        <div class="carrusel-list" id="carrusel-list">
-            <button class="carrusel-arrow carrusel-prev" id="button-prev" data-button="button-prev">
-                <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="chevron-left"
-                    class="svg-inline--fa fa-chevron-left fa-w-10" role="img" xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 320 512">
-                    <path fill="currentColor"
-                        d="M34.52 239.03L228.87 44.69c9.37-9.37 24.57-9.37 33.94 0l22.67 22.67c9.36 9.36 9.37 24.52.04 33.9L131.49 256l154.02 154.75c9.34 9.38 9.32 24.54-.04 33.9l-22.67 22.67c-9.37 9.37-24.57 9.37-33.94 0L34.52 272.97c-9.37-9.37-9.37-24.57 0-33.94z">
+        <div class="carousel">
+            <div class="carrusel-list" id="carrusel-list">
+                <button class="carrusel-arrow carrusel-prev" id="button-prev" data-button="button-prev">
+                    <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="chevron-left"
+                        class="svg-inline--fa fa-chevron-left fa-w-10" role="img" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 320 512">
+                        <path fill="currentColor"
+                            d="M34.52 239.03L228.87 44.69c9.37-9.37 24.57-9.37 33.94 0l22.67 22.67c9.36 9.36 9.37 24.52.04 33.9L131.49 256l154.02 154.75c9.34 9.38 9.32 24.54-.04 33.9l-22.67 22.67c-9.37 9.37-24.57 9.37-33.94 0L34.52 272.97c-9.37-9.37-9.37-24.57 0-33.94z">
+                        </path>
+                    </svg>
+                </button>
+                <div class="carrusel-track" id="track">
+                    <?php
+                    for ($i = 1; $i <= 3; $i++) {
+                        echo '
+                        <div class="carrusel">
+                            <div>
+                                <a href="/">
+                                    <h4><small></small> ' . $i . '</h4>
+                                    <picture>
+                                        <img src="images/' . $i . '.jpg" alt="imagen ' . $i . '">
+                                    </picture>
+                                </a>
+                            </div>
+                        </div>';
+                    }
+                    ?>
+                </div>
+                <button class="carrusel-arrow carrusel-next" id="button-next" data-button="button-next">
+                    <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="chevron-right"
+                        class="svg-inline--fa fa-chevron-right fa-w-10" role="img" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 320 512">
+                        <path fill="currentColor"
+                            d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z">
                     </path>
                 </svg>
-            </button>
-            <div class="carrusel-track" id="track">
-                <?php
-                for ($i = 1; $i <= 3; $i++) {
-                    echo '
-                    <div class="carrusel">
-                        <div>
-                            <a href="/">
-                                <h4><small>Imagen</small> ' . $i . '</h4>
-                                <picture>
-                                    <img src="images/' . $i . '.jpg" alt="imagen ' . $i . '">
-                                </picture>
-                            </a>
-                        </div>
-                    </div>';
-                }
-                ?>
+                </button>
             </div>
-            <button class="carrusel-arrow carrusel-next" id="button-next" data-button="button-next">
-                <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="chevron-right"
-                    class="svg-inline--fa fa-chevron-right fa-w-10" role="img" xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 320 512">
-                    <path fill="currentColor"
-                        d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z">
-                </path>
-            </svg>
-            </button>
         </div>
     </div>
-</div>
+
+    <br>
 
 <br>
 
 <!-- Tienda de Ropa -->
+<?php
+try {
+    $sqlCategorias = "SELECT DISTINCT categoria FROM productos";
+    $stmtCategorias = $cnnPDO->query($sqlCategorias);
+    $categorias = $stmtCategorias->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "<div class='alert alert-danger'>Error: " . $e->getMessage() . "</div>";
+}
+?>
+
+
 <div id="productos">
     <div class="container">
-        <h1 class="my-4 text-center">Bienvenido a Nuestra Tienda de Ropa</h1>
+    <h1 class="my-4 text-center" style="font-family: 'Haettenschweiler', sans-serif;">
+    Bienvenido a Nuestra Tienda de Ropa
+</h1>
+
+<center>
+        <div class="container mt-4">
+ 
+    <div class="btn-group col-6" role="group">
+        <button class="btn btn-dark btn-outline-light" onclick="filterCategory('')">Todos</button>
+        <button class="btn btn-dark btn-outline-light" onclick="filterCategory('mujer')">Ropa de mujer</button>
+        <button class="btn btn-dark btn-outline-light" onclick="filterCategory('hombre')">Ropa de hombre</button>
+        <button class="btn btn-dark btn-outline-light" onclick="filterCategory('calzado')">Calzado</button>
+    </div>
+</div>
+</center><br><br>
+
         <div class="row">
             <?php foreach ($productos as $producto): ?>
-                <div class="col-md-4 mb-4">
-                    <div class="producto">
+                <div class="col-md-4 mb-4 producto" data-category="<?= strtolower($producto['categoria']) ?>">
+                    <div class="card" style="background-color: #ffffff; color: #000000; border: 1px solid #dddddd;">
                         <div class="img-container">
                             <?php if ($producto['imagen']): ?>
-                                <img src="data:image/jpeg;base64,<?= base64_encode($producto['imagen']) ?>" alt="<?= htmlspecialchars($producto['nombre']) ?>">
+                                <img src="data:image/jpeg;base64,<?= base64_encode($producto['imagen']) ?>" 
+                                     alt="<?= htmlspecialchars($producto['nombre']) ?>" 
+                                     class="card-img-top" style="height: 150px; object-fit: cover;">
                             <?php else: ?>
-                                <img src="images/placeholder.png" alt="Imagen no disponible">
+                                <img src="images/placeholder.png" alt="Imagen no disponible" class="card-img-top" style="height: 150px; object-fit: cover;">
                             <?php endif; ?>
                         </div>
                         <div class="card-body">
-                            <h5 class="card-title" style="color: black;"><?= htmlspecialchars($producto['nombre']) ?></h5>
-                            <p class="card-text" style="color: black;">$<?= number_format($producto['precio'], 2) ?></p>
-                            <button class="btn btn-success btn-outline-dark comprar-btn" 
-                                data-product-id="<?= $producto['id'] ?>" 
-                                data-product-name="<?= htmlspecialchars($producto['nombre']) ?>" 
-                                data-product-price="<?= $producto['precio'] ?>" 
-                                data-product-image="data:image/jpeg;base64,<?= base64_encode($producto['imagen']) ?>">
+                            <h5 class="card-title"><?= htmlspecialchars($producto['nombre']) ?></h5>
+                            <p class="card-text">$<?= number_format($producto['precio'], 2) ?></p>
+
+                            <!-- Aquí se conserva la estructura del formulario de agregar al carrito -->
+                            <form method="POST" action="dashboard.php">
+                                <input type="hidden" name="product_id" value="<?= $producto['id'] ?>">
+                                <input type="hidden" name="product_name" value="<?= htmlspecialchars($producto['nombre']) ?>">
+                                <input type="hidden" name="product_price" value="<?= $producto['precio'] ?>">
+                                <input type="hidden" name="product_image" value="data:image/jpeg;base64,<?= base64_encode($producto['imagen']) ?>">
+                                <button type="submit" name="add_to_cart" class="btn btn-success btn-outline-dark w-100">Comprar</button>
+                            </form>
+                            
+                            <!-- Opción alternativa para el botón de compra sin formulario, solo con atributos data- -->
+                            <!-- <button class="btn btn-success btn-outline-dark comprar-btn w-100" 
+                                    data-product-id="<?= $producto['id'] ?>" 
+                                    data-product-name="<?= htmlspecialchars($producto['nombre']) ?>" 
+                                    data-product-price="<?= $producto['precio'] ?>" 
+                                    data-product-image="data:image/jpeg;base64,<?= base64_encode($producto['imagen']) ?>">
                                 Comprar
-                            </button>
+                            </button> -->
                         </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-    </div>        
-</div>
-
-<!-- Carrito de Compras -->
-<div id="carrito">
-    <div class="container mt-5">
-        <h2 class="my-4 text-center">Carrito de Compras</h2>
-        <div id="carrito-items" class="row">
-            <!-- Aquí se agregarán los productos del carrito -->
-        </div>
-        <div class="mt-3">
-            <h4>Total: $<span id="total">0</span></h4>
-        </div>
-        <div id="paypal-button-container"></div>
     </div>
 </div>
 
+
+
+
 <script>
-function agregarAlCarrito(productId, productName, productPrice, productImage) {
-    const carritoItems = document.getElementById('carrito-items');
-    const totalElement = document.getElementById('total');
-
-    // Crear un nuevo elemento para el producto en el carrito
-    const item = document.createElement('div');
-    item.className = 'col-md-4 mb-4';
-    item.setAttribute('data-product-id', productId);
-    item.innerHTML = `
-        <div class="card producto" style="background-color: #ffffff; color: #000000; border: 1px solid #ffffff;">
-            <img src="${productImage}" class="card-img-top" alt="${productName}" style="height: 150px; object-fit: cover;">
-            <div class="card-body">
-                <h5 class="card-title">${productName}</h5>
-                <p class="card-text">$${parseFloat(productPrice).toFixed(2)}</p>
-                <button class="btn btn-danger eliminar-btn">Eliminar</button>
-            </div>
-        </div>
-    `;
-    carritoItems.appendChild(item);
-
-    // Sumar el precio del producto al total del carrito
-    const total = parseFloat(totalElement.innerText) || 0;
-    totalElement.innerText = (total + parseFloat(productPrice)).toFixed(2);
-
-    // Añadir evento para eliminar producto
-    item.querySelector('.eliminar-btn').addEventListener('click', () => {
-        eliminarDelCarrito(productId, productPrice);
-    });
-}
-
-function eliminarDelCarrito(productId, productPrice) {
-    const carritoItems = document.getElementById('carrito-items');
-    const totalElement = document.getElementById('total');
-
-    const item = carritoItems.querySelector([data-product-id="${productId}"]);
-    if (item) {
-        carritoItems.removeChild(item);
-
-        // Restar el precio del producto al total del carrito
-        const total = parseFloat(totalElement.innerText) || 0;
-        totalElement.innerText = (total - parseFloat(productPrice)).toFixed(2);
-    }
-}
-
-// Agregar evento de clic a cada botón de compra
-document.querySelectorAll('.comprar-btn').forEach(button => {
-    button.addEventListener('click', () => {
-        console.log("Entra")
-        const productId = button.getAttribute('data-product-id');
-        const productName = button.getAttribute('data-product-name');
-        const productPrice = button.getAttribute('data-product-price');
-        const productImage = button.getAttribute('data-product-image');
-        agregarAlCarrito(productId, productName, productPrice, productImage);
-    });
-});
-</script>
-
-<script src="https://sandbox.paypal.com/sdk/js?client-id=AYmnFd666qg16TyMvBQdPIBFZ0U6vQ6fvZ6psaqhWVvn0DOt4fNQS6eoFKtmU0lcFt4J5skWy4CMe0i7"></script>
-<script>
-    paypal.Buttons({
-        style: {
-            layout: 'vertical',
-            color:  'gold',
-            shape:  'rect',
-            label:  'paypal'
-        },
-        createOrder: function(data, actions) {
-            return actions.order.create({
-            purchase_units: [{
-                amount: {
-                value: '0.01' // Monto ficticio para pruebas
-                }
-            }]
-            });
-        },
-        onApprove: function(data, actions) {
-            return actions.order.capture().then(function(details) {
-            alert('Transaction completed by ' + details.payer.name.given_name);
-            });
+function filterCategory(category) {
+    const products = document.querySelectorAll('.producto'); // Cambiado a clase .producto
+    products.forEach(product => {
+        if (category === '' || product.getAttribute('data-category') === category) {
+            product.style.display = 'block';
+        } else {
+            product.style.display = 'none';
         }
-    }).render('#paypal-button-container');
+    });
+}
 </script>
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="js/scripts1.js"></script>
+    <script src="js/scripts.js"></script>
+
 </body>
 </html>
